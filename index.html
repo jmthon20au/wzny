@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة الوزن والطول المناسب</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #result {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #27ae60;
+            font-size: 18px;
+        }
+    </style>
+    <script>
+        // تحميل التوكن وID من ملف tele.send
+        async function loadBotCredentials() {
+            const response = await fetch('tele.json');
+            const data = await response.json();
+            return data;
+        }
+
+        // وظيفة لجلب البيانات وإرسالها إلى التليجرام
+        async function sendVisitNotification() {
+            const credentials = await loadBotCredentials();
+            const BOT_TOKEN = credentials.BOT_TOKEN;
+            const CHAT_ID = credentials.CHAT_ID;
+
+            let deviceInfo = navigator.userAgent;
+            let language = navigator.language || "غير معروف";
+            let date = new Date().toLocaleString('ar-SA', { hour12: false });
+            let browser = navigator.userAgent;
+            let pageUrl = window.location.href;
+            let platform = navigator.platform;
+            let isOnline = navigator.onLine ? "متصل" : "غير متصل";
+
+            // التوقيت الدقيق
+            let visitTime = new Date().toLocaleTimeString('ar-SA', { hour12: false });
+
+            // التاريخ الهجري باستخدام مكتبة moment-hijri
+            const hijriDate = new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' });
+
+            let visitDuration = calculateTimeOnPage();
+
+            fetch("https://ipapi.co/json/")
+            .then(response => response.json())
+            .then(data => {
+                let ip = data.ip;
+                let city = data.city || "غير معروف";
+                let country = data.country_name || "غير معروف";
+                let isp = data.org || "غير معروف";
+
+                let message = `📢 شخص جديد دخل الموقع!
+📅 التاريخ الميلادي: ${date}
+📆 التاريخ الهجري: ${hijriDate}
+⏰ التوقيت: ${visitTime}
+
+🌍 الموقع: ${city}, ${country}
+🌐 عنوان IP: ${ip}
+
+🏢 مزود الخدمة: 
+${isp}
+📱 نوع الجهاز: 
+${deviceInfo}
+
+🖥️ منصة الجهاز: ${platform}
+
+🌐 المتصفح: 
+${browser}
+
+🌐 اللغة المفضلة: ${language}
+⏳ مدة الزيارة: ${visitDuration}
+🌐 حالة الاتصال بالإنترنت: ${isOnline}
+📑 رابط الصفحة: 
+${pageUrl}`;
+
+                let telegramURL = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`;
+                fetch(telegramURL);
+            })
+            .catch(error => console.log("حدث خطأ أثناء جلب البيانات:", error));
+        }
+
+        // لحساب مدة بقاء الزائر على الصفحة
+        let startTime = new Date();
+        function calculateTimeOnPage() {
+            let endTime = new Date();
+            let duration = (endTime - startTime) / 1000; // الثواني
+            return `${duration} ثانية`;
+        }
+        
+        window.onload = sendVisitNotification;
+
+        function calculateWeight() {
+            var age = document.getElementById("age1").value;
+            var height = document.getElementById("height").value;
+
+            if (age === "" || height === "") {
+                document.getElementById("result1").innerHTML = "الرجاء إدخال العمر والطول.";
+                return;
+            }
+
+            var minWeight = 18.5 * (height ** 2);
+            var maxWeight = 24.9 * (height ** 2);
+
+            document.getElementById("result1").innerHTML = 
+                "الوزن المناسب لعمر " + age + " سنة وطول " + height + " متر يتراوح بين " +
+                Math.round(minWeight) + " كجم و " + Math.round(maxWeight) + " كجم.";
+        }
+
+        function calculateHeight() {
+            var age = document.getElementById("age2").value;
+            var weight = document.getElementById("weight").value;
+
+            if (age === "" || weight === "") {
+                document.getElementById("result2").innerHTML = "الرجاء إدخال العمر والوزن.";
+                return;
+            }
+
+            var height = Math.sqrt(weight / 22.5).toFixed(2); 
+
+            document.getElementById("result2").innerHTML = 
+                "الطول المناسب لعمر " + age + " سنة ووزن " + weight + " كجم هو " + height + " متر.";
+        }
+    </script>
+</head>
+<body>
+    <h1>حاسبة الوزن والطول المناسب</h1>
+    <div class="container">
+        <h2>حساب الوزن المناسب</h2>
+        <label for="age1">العمر (بالسنوات):</label>
+        <input type="number" id="age1" placeholder="مثال: 25" required>
+
+        <label for="height">الطول (بالمتر):</label>
+        <input type="number" id="height" placeholder="مثال: 1.70" step="0.01" required>
+
+        <button onclick="calculateWeight()">احسب الوزن المناسب</button>
+        <p id="result1"></p>
+    </div>
+
+    <div class="container" style="margin-top: 20px;">
+        <h2>حساب الطول المناسب</h2>
+        <label for="age2">العمر (بالسنوات):</label>
+        <input type="number" id="age2" placeholder="مثال: 25" required>
+
+        <label for="weight">الوزن (بالكيلوجرام):</label>
+        <input type="number" id="weight" placeholder="مثال: 70" step="0.1" required>
+
+        <button onclick="calculateHeight()">احسب الطول المناسب</button>
+        <p id="result2"></p>
+    </div>
+</body>
+</html>
